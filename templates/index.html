@@ -161,7 +161,7 @@
                         <li class="disk-item">
                             <span class="disk-icon">💿</span>
                             <label class="disk" style="flex:1; cursor:pointer;">{{ disk.name }}</label>
-                            <span style="font-size:11px; color:#808080;">Free: {{ disk.free_kb }} KB</span>
+                            <span style="font-size:11px; color:#808080;">Used: {{ disk.used_kb}} KB / {{ disk.total_kb }} KB</span>
                             <form method="POST" action="/read-disk-metadata" style="display:inline;">
                                 <input type="hidden" name="disk-name" value="{{ disk.name }}">
                                 <button type="submit" class="btn" style="right:auto; position:static;">Metadata</button>

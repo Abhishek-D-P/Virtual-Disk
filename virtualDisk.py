@@ -24,9 +24,9 @@ class VirtualDisk:
             "inode_table":2,
             "data_block":3,
             "free_blocks":self.total_blocks - 3,
-            "used_blocks":3
+            "used_blocks":3,
+            "size":3*self.BLOCK_SIZE
         }
-
         self.bitmap = [0]*self.total_blocks 
 
         # Mark reserved blocks as used
@@ -97,9 +97,10 @@ class VirtualDisk:
     def load(cls, diskname):
         """Open an existing .bin disk without overwriting it."""
 
-        disk = object._new_(cls)
+        disk = object.__new__(cls)
         disk.BLOCK_SIZE = 4096
         disk.diskname = diskname
+        
 
         with open(diskname, "rb") as f:
 
@@ -110,6 +111,7 @@ class VirtualDisk:
 
             f.seek(disk.metadata["inode_table"] * disk.BLOCK_SIZE)
             disk.inode_table = json.loads(f.read(disk.BLOCK_SIZE).strip(b"\0").decode())
+            
 
         disk.disksize = disk.metadata["disksize"]
         disk.total_blocks = disk.metadata["total_blocks"]
@@ -191,7 +193,7 @@ class FileSystem:
     
     @classmethod
     def load(cls, disk:VirtualDisk):
-        fs = object._new_(cls)
+        fs = object.__new__(cls)
         fs.disk = disk
         fs.path = "root"
         return fs
@@ -216,6 +218,10 @@ class FileSystem:
         parent_folder_lookup = json.loads(self.open_entry(parent_folder).strip())
         parent_folder_lookup[name] = file_inode_hash
         self.update_entry(parent_folder, json.dumps(parent_folder_lookup,separators=COMPACT))
+        parent_folder_inode = self.disk.inode_table[self.inode_hash(parent_folder)]
+        parent_folder_inode["size"] = parent_folder_inode["size"] + size
+        self.disk.metadata["size"] += size
+        self.disk.update_disk_metadata()
     
     def update_entry(self,name:str,content:str):
         '''Updates content of file or directory.'''
@@ -249,6 +255,7 @@ class FileSystem:
         '''Deletes a file or directory.'''
         inode = self.disk.inode_table[self.inode_hash(name)]
         blocks_used = inode["blocks_used"]
+        size = inode["size"]
         for block in blocks_used:
             self.disk.clear_block(block)
         
@@ -259,7 +266,8 @@ class FileSystem:
         if name in parent_folder_lookup:
             del parent_folder_lookup[name]
             self.update_entry(parent_folder, json.dumps(parent_folder_lookup,separators=COMPACT))
-        
+        self.disk.inode_table[self.inode_hash(parent_folder)]["size"] -= size
+        self.disk.metadata["size"] -= size
         self.disk.update_disk_metadata()
 
         return
@@ -345,14 +353,13 @@ class FileSystem:
                 self.tree(entry, prefix + extension, False)
     
 if __name__ == "__main__":
-    disk = VirtualDisk("disk", 2)
+    disk = VirtualDisk("C.bin",6)
     fs = FileSystem(disk)
-    fs.ls()
-    fs.mkdir("docs")
-    fs.cd("docs")
-    fs.create_file("file1.txt", "Hello, World!")
-    # fs.cd("root")
-    print(fs.ls())
+    fs.mkdir("folder1")
+    fs.cd("folder1")
+    fs.create_file("file1.txt", '''This book was set in Times Roman.''')
+
+    print(fs.disk.inode_table)
     fs.tree()
 
     

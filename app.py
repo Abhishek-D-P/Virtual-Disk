@@ -1,5 +1,5 @@
 from flask import Flask, render_template,request,redirect,jsonify
-from VirtualDisk import VirtualDisk, FileSystem
+from virtualDisk import VirtualDisk, FileSystem
 import os
 import json
 app = Flask(__name__)
@@ -23,14 +23,16 @@ def redirect_to_disk(disk_name, fs):
     if fs.path == "root":
         return redirect(f"/disk/{disk_name}")
     return redirect(f"/disk/{disk_name}/{fs.path}")
+
 @app.route("/")
 def home():
     disks = []
     for entry in os.scandir(os.getcwd()):
         if entry.is_file() and entry.name.endswith(".bin"):
             d = VirtualDisk.load(entry.name)
-            free_kb = round(d.metadata["free_blocks"] * d.BLOCK_SIZE / 1024, 1)
-            disks.append({"name": entry.name, "free_kb": free_kb})
+            used_kb = round(d.metadata["used_blocks"] * d.BLOCK_SIZE / 1024, 1)
+            size = d.metadata["size"] // 1024
+            disks.append({"name": entry.name, "used_kb": size,"total_kb": round(d.metadata["total_blocks"] * d.BLOCK_SIZE / 1024, 1)})
 
     return render_template("index.html",disks=disks,metadata=metadata,diskname=diskname)
 
