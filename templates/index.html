@@ -3,9 +3,228 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Virtual Disk Manager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #008080; font-family: "Segoe UI", Tahoma, sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; }
+
+        .window {
+            width: 700px;
+            background: #c0c0c0;
+            border: 2px solid;
+            border-color: #ffffff #808080 #808080 #ffffff;
+            box-shadow: 1px 1px 0 #000;
+        }
+        .title-bar {
+            background: linear-gradient(90deg, #000080, #1084d0);
+            color: white;
+            padding: 4px 8px;
+            font-size: 13px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .title-bar-controls button {
+            width: 16px; height: 14px;
+            border: 1px solid;
+            border-color: #ffffff #808080 #808080 #ffffff;
+            background: #c0c0c0;
+            font-size: 9px;
+            cursor: pointer;
+        }
+        .window-body {
+            padding: 12px;
+        }
+        .section {
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .disk-list {
+            list-style: none;
+            max-height: 180px;
+            overflow-y: auto;
+            background: white;
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            padding: 4px;
+        }
+        .disk-item {
+            position: relative;
+            padding: 4px 8px; 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+        }
+
+        .disk-item:hover { background: #000080; color: white; }
+
+        .disk-icon { width: 16px; height: 16px; }
+
+        .form-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 8px;
+        }
+        .form-row label { font-size: 12px; min-width: 70px; }
+        .form-row input {
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            padding: 2px 4px;
+            font-size: 12px;
+            width: 140px;
+        }
+        .disk-item .btn {
+            border: none;
+            border-color: #ffffff #808080 #808080 #ffffff;
+            background: #c0c0c0;
+            padding: 3px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 10px;
+            position: absolute;
+            right: 10px;
+
+        }
+        .disk-item .btn:hover {
+            color: wheat;
+            background-color: #008080;
+        }
+        .metadata-box {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            background: white;
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            padding: 8px;
+            font-family: "Courier New", monospace;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+        .metadata {
+            border: 1px solid #c0c0c0;
+            padding: 6px;
+            background: #f0f0f0;
+            text-align: center;
+        }
+        .metadata p:first-child {
+            font-weight: bold;
+            font-size: 10px;
+            color: #000080;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            border-bottom: 1px solid #c0c0c0;
+            padding-bottom: 3px;
+        }
+        .metadata p:last-child {
+            font-size: 13px;
+            color: #000;
+        }
+        .status-bar {
+            border-top: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            padding: 4px 8px;
+            font-size: 11px;
+            background: #c0c0c0;
+        }
+    </style>
 </head>
 <body>
-    <h2>home</h2>
+    <div class="window">
+        <div class="title-bar">
+            <span>💾 Virtual Disk Manager</span>
+            <div class="title-bar-controls">
+                <button>─</button>
+                <button>□</button>
+                <button>✕</button>
+            </div>
+        </div>
+        <div class="window-body">
+            <!-- Disk List -->
+            <div class="section">
+                <div class="section-title">Virtual Disks (.bin)</div>
+                <ul class="disk-list">
+                    {% if disks %}
+                        {% for disk in disks %}
+                        <li class="disk-item">
+                            <span class="disk-icon">💿</span>
+                            <label class="disk" style="flex:1; cursor:pointer;">{{ disk.name }}</label>
+                            <span style="font-size:11px; color:#808080;">Free: {{ disk.free_kb }} KB</span>
+                            <form method="POST" action="/read-disk-metadata" style="display:inline;">
+                                <input type="hidden" name="disk-name" value="{{ disk.name }}">
+                                <button type="submit" class="btn" style="right:auto; position:static;">Metadata</button>
+                            </form>
+                            <form method="POST" action="/delete-disk" style="display:inline;">
+                                <input type="hidden" name="disk-name" value="{{ disk.name }}">
+                                <button type="submit" class="btn" style="right:auto; position:static; color:red;" onclick="return confirm('Delete {{ disk.name }}?')">Delete</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="disk-item" style="color:#808080;">No virtual disks found</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <!-- Create Disk -->
+            <div class="section">
+                <div class="section-title">Create New Disk</div>
+                <form method="POST" action="/create-disk">
+                    <div class="form-row">
+                        <label>Name:</label>
+                        <input type="text" name="diskName" placeholder="my_disk" required>
+                    </div>
+                    <div class="form-row">
+                        <label>Size (MB):</label>
+                        <input type="number" name="diskSize" value="2" min="1" max="100" required>
+                    </div>
+                    <div class="form-row">
+                        <label></label>
+                        <button type="submit" class="btn">Create Disk</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Metadata Display -->
+            {% if metadata %}
+            <div class="section">
+                <div class="section-title">Disk Metadata <span>{{diskname}}</span></div>
+                <div class="metadata-box">
+                    {% for key in metadata %}
+                        <div class="metadata">
+                            <p>{{ key }}</p>
+                            <p>{{ metadata[key] }}</p>
+                        </div>
+
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="status-bar">
+            {{ disks|length }} disk(s) found
+        </div>
+    </div>
 </body>
+<script>
+let disks = document.querySelectorAll(".disk");
+disks.forEach((disk)=>{
+    disk.addEventListener("dblclick",(event)=>{
+        window.location.assign(`/disk/${disk.textContent.trim()}/root`);
+
+    });
+});
+</script>
 </html>
