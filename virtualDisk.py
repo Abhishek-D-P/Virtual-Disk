@@ -345,12 +345,14 @@ class FileSystem:
                 self.tree(entry, prefix + extension, False)
     
 if __name__ == "__main__":
-    disk = VirtualDisk("mydisk", 2)
+    disk = VirtualDisk("disk", 2)
     fs = FileSystem(disk)
     fs.ls()
+    fs.mkdir("docs")
+    fs.cd("docs")
     fs.create_file("file1.txt", "Hello, World!")
     # fs.cd("root")
-    fs.ls()
+    print(fs.ls())
     fs.tree()
 
     
