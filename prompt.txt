@@ -1,0 +1,41 @@
+You are a senior engineer writing a student-friendly technical blog post.
+
+CONTEXT:
+I built a virtual disk and file system from scratch in Python (~350 lines) to learn how real systems like NTFS, ext4, and cloud block storage (AWS EBS, Azure Managed Disks) work. The code has two classes: VirtualDisk (the raw disk layer) and FileSystem (the layer that organizes blocks into files and folders).
+
+Here is the full source code:
+
+<paste the contents of VirtualDisk.py here>
+
+TASK:
+Write a blog post titled "How Disks and File Systems Actually Work — Built From Scratch in Python" that explains how real-time disk/folder systems work using the code above, and helps students connect the concepts to real systems like NTFS, ext4, and cloud block storage.
+
+STRUCTURE (follow this order):
+1. "Why I Wrote This" — brief intro: studying for AZ-900, wanted to understand how block storage actually works, built it from scratch
+2. "The Big Picture" — two layers: Disk (raw bytes) and File System (organizing bytes into files). Include a table mapping each layer to real-world examples
+3. "Part 1: The Virtual Disk" with these subsections:
+   a. "What is a disk, and what is a virtual disk?" — explain physical disk vs virtual disk (a software copy, a .bin file that behaves like a real disk). Connect to cloud services (EBS, Managed Disks)
+   b. "What is a block?" — 4KB fixed-size chunks. Use a hotel analogy (rooms = blocks, front desk = bitmap). Mention ext4/NTFS/EBS block sizes
+   c. "Disk Layout: The First Three Blocks" — FIRST explain what each reserved block does in plain English (superblock = floor plan, bitmap = vacancy board, inode table = inventory ledger), with real-world parallels (ext4 superblock, NTFS $MFT, $Bitmap). THEN show the metadata code
+   d. "The Bitmap in Action" — show the bitmap array, walk through what happens when a file is written (scan for first 0, flip to 1). Show the write_block code
+   e. "How Reading and Writing Find the Right Spot" — explain that the filesystem requests "read/write block N" and the disk must find the byte position. Show the offset() function. Connect to LBA addressing in SSDs
+4. "Part 2: The File System" with these subsections:
+   a. "Inodes — The File's ID Card" — start by posing the problem: a file is 5000 bytes, bigger than one 4KB block, so it's split across two blocks. How does the system track this? Introduce the inode as the answer. Show the inode dict. Explain: filename is NOT stored in the inode (it's in the directory), which enables hard links. Connect to ext4 inodes (ls -i), NTFS MFT records
+   b. "Creating a File — A Story in Three Acts" — tell it as a narrative, not bullet points. Act 1: finding space and writing data (disk layer). Act 2: creating the inode (file system layer). Act 3: telling the parent folder by updating its lookup table. Show the create_entry code after the story. Note this mirrors ext4 file creation exactly
+   c. "Directories Are Just Files" — a folder's content is a JSON dict mapping {name: inode_key}. Show mkdir code. Then trace a CONCRETE example: start from empty disk, run mkdir("documents"), cd("documents"), create_file("hello.txt",...), create_file("notes.txt",...), mkdir("drafts"). Show what root's block looks like and what documents' block looks like as JSON. Explain . and .. entries and how cd uses them. Connect to ext4 directories and NTFS B-tree indexes
+   d. "Navigating the Tree" — cd just updates a path string, no disk I/O. Disk is only touched when listing/creating/deleting
+   e. "Deleting a File — Erasing the Trail" — walk backwards through the three acts. First explain clear_block: writing zeros over the full 4KB, flipping bitmap back to 0. Show clear_block code. Then show delete_entry code. End with the real-world insight: most real filesystems DON'T zero the blocks, they just remove the inode and directory entry — which is why data recovery tools work. Our implementation does a "secure delete"
+5. "Part 3: Connecting to the Cloud" — table mapping our code to cloud equivalents. Explain what EBS/Managed Disk really is (a virtual .bin file on shared SSDs). Explain why blocks exist (fixed size allocation, scattered blocks tracked by inodes, efficient aligned I/O, bitmap prevents collisions) — write this as flowing prose, not bullet points
+6. "Limitations" — table comparing our limitations to real system solutions (JSON bitmap vs 1-bit-per-block, single block inode table vs block groups, no journaling, no permissions, hash vs sequential inode numbers)
+7. "Try It Yourself" — runnable code snippet creating a disk, making folders, creating files, running tree()
+8. "Key Takeaways" — 5 short points summarizing blocks, bitmap, inodes, directories-as-files, and cloud connection
+
+STYLE REQUIREMENTS:
+- Write as a flowing story/narrative, NOT bullet-point reference docs
+- Explain concepts in plain English BEFORE showing code
+- Use analogies (hotel rooms, warehouse, ID cards, vacancy boards)
+- Show relevant Python code snippets from the source (not the full file)
+- After each concept, draw a "Real-world parallel" connecting to ext4, NTFS, or cloud storage
+- Keep it student-friendly — assume the reader knows basic Python but nothing about filesystems
+- Use markdown formatting with headers, code blocks, tables, and ASCII diagrams
+- Do NOT use emojis
