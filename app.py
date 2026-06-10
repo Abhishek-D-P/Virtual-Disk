@@ -2,6 +2,7 @@ from flask import Flask, render_template,request,redirect,jsonify
 from virtualDisk import VirtualDisk, FileSystem
 import os
 import json
+
 app = Flask(__name__)
 metadata = {}
 diskname = ""
@@ -130,4 +131,4 @@ def rmdir():
     return redirect_to_disk(diskname, fs)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)
